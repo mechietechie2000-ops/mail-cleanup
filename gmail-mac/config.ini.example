@@ -1,0 +1,47 @@
+; Rename this file to config.ini and fill in your details.
+; Everything in [square brackets] is a "section" the Python code looks up by name.
+
+[default]
+; Directory where per-account log files get written. Must end with a slash.
+logDirName = /Users/YOURNAME/gmail-cleanup/logs/
+; Base directory the code falls back to when looking for sender-list files.
+base_dir = /Users/YOURNAME/gmail-cleanup/
+
+[Alerts]
+; Phone number (+countrycode...) or Apple ID email you send/receive iMessage with.
+imessage_target = +15551234567
+; Alert if free disk space drops below this many GB.
+min_free_gb = 5
+
+[Watchdog]
+; Alert if main.py hasn't even STARTED in this many hours.
+; Only matters if you schedule watchdog.py separately - see README.md.
+max_hours_since_attempt = 26
+
+[Mail]
+; Quit and relaunch Mail.app fresh before each run, and quit it again after.
+; Helps avoid stuck connections / dialogs / memory bloat carrying over
+; between hourly runs. Set to false if this ever causes more trouble than
+; it prevents (e.g. Mail is slow to relaunch on your machine).
+restart_before_run = true
+restart_after_run = true
+; How long to wait (seconds) for Mail.app to finish launching before giving up.
+launch_wait_seconds = 60
+
+; ---------------------------------------------------------------------------
+; One section per Gmail/mailbox account you want this to manage.
+; Section name (e.g. "Email1") is what you pass to gmailObject.<method>('Email1', ...)
+; ---------------------------------------------------------------------------
+[Email1]
+email_id = you@gmail.com
+user = you
+service_provider = gmail
+; Path (relative to base_dir, or an absolute path) to a senders.ini-style
+; file (see senders.ini.example) containing who/what to delete for this account.
+sender_email_id_list = senders_email1.ini
+
+[Email2]
+email_id = you-second-account@gmail.com
+user = you2
+service_provider = gmail
+sender_email_id_list = senders_email2.ini

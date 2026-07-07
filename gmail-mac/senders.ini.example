@@ -1,0 +1,25 @@
+; Rename to e.g. senders_email1.ini (matching sender_email_id_list in config.ini)
+; Each section below is optional - only fill in the ones you actually use.
+; Keys are read as plain text (allow_no_value); values after a comma are extra fields.
+
+[From]
+; One sender email address per line (as the key). Matches on exact sender address.
+newsletter@example.com
+promo@example.com
+
+[DisplayName]
+; One display name per line (as it appears in Mail, not the email address).
+Some Marketing Team
+Another Sender Name
+
+[FromSubject]
+; sender_email, subject substring to match  ->  key = "sender@example.com, Subject text"
+sender@example.com, Weekly Digest
+
+[DisplayNameDateAgo]
+; display name, days ago  ->  deletes matching messages older than N days
+Some Old Sender, 90
+
+[DisplayNameDateAgoSubject]
+; display name, days ago, subject substring
+Some Old Sender, 90, Renewal Notice
