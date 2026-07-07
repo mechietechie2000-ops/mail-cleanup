@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 import configparser
 import csv
+import re
 from pathlib import Path
 
 from monitor import AlertMonitor, run_applescript_safe, run_applescript_file_safe
@@ -262,8 +263,34 @@ class GmailMgmt:
     # -------------------------------------------------------------------
     # Config helpers
     # -------------------------------------------------------------------
-    def get_log_file(self, service_provider, user):
-        log_file_name = self.log_dir_name + service_provider + '_' + user + "_" + self.today_date + ".log"
+    @staticmethod
+    def _sanitize_filename_part(value):
+        """Keeps filenames safe/predictable even if service_provider or user
+        ever contains something like a space or slash."""
+        if not value:
+            return "unknown"
+        return re.sub(r'[^A-Za-z0-9_.-]', '_', str(value))
+
+    def get_log_file(self, service_provider, user, suffix=None):
+        safe_provider = self._sanitize_filename_part(service_provider)
+        safe_user = self._sanitize_filename_part(user)
+        safe_suffix = f"{self._sanitize_filename_part(suffix)}_" if suffix else ""
+        log_file_name = (
+            self.log_dir_name + safe_provider + '_' + safe_user + "_" + safe_suffix + self.today_date + ".log"
+        )
+
+        # Auto-create the containing directory. Without this, a fresh
+        # install (or a typo'd logDirName) fails silently: appendToLog's
+        # "open for access" just swallows the error in AppleScript, so
+        # you'd get NO detailed per-message log and no obvious reason why.
+        log_dir = os.path.dirname(log_file_name)
+        if log_dir:
+            try:
+                os.makedirs(log_dir, exist_ok=True)
+            except OSError as e:
+                logging.error(f"Could not create log directory {log_dir}: {e}")
+
+        logging.info(f"Detailed per-message log for this step: {log_file_name}")
         return log_file_name
 
     def get_email_info(self, section_name):
@@ -420,6 +447,27 @@ class GmailMgmt:
     # -------------------------------------------------------------------
     # Bulk per-sender processing
     # -------------------------------------------------------------------
+    def delete_messages_by_id(self, section_name, message_ids, action="list"):
+        """
+        Delete (or, with action="list", just log without deleting) specific
+        messages by Mail.app's OWN internal message id - the message_id
+        column export_preview.py writes to its CSV. This is NOT the same as
+        a mail server's Message-ID: header, and it is NOT something to
+        store long-term (e.g. in a senders_*.csv rule) - it's only valid
+        for "delete this exact message I just saw in a review a moment
+        ago" on this specific Mac's Mail data store.
+
+        Defaults to action="list" (dry run) since there's no room for a
+        fuzzy match here - a wrong ID means a wrong message.
+        """
+        email_id, user, service_provider, _ = self.get_email_info(section_name)
+        log_file_name = self.get_log_file(service_provider, user, suffix="by_id")
+        ids = [str(m) for m in message_ids]
+        return self._run_applescript_file(
+            step_name=f"delete_messages_by_id[{action}]", mode="message_id", action=action,
+            batch_size=len(ids), records=ids, email_id=email_id, log_file=log_file_name
+        )
+
     def bulk_delete_email_by_sender_id(self, section_name):
         """
         NOTE: despite the name, this only LOGS matches (delete msg was
@@ -432,7 +480,7 @@ class GmailMgmt:
         senders instead of one osascript call per sender.
         """
         email_id, user, service_provider, sender_email_id_list = self.get_email_info(section_name)
-        log_file_name = self.log_dir_name + service_provider + '_' + user + "_bulk_delete_" + self.today_date + ".log"
+        log_file_name = self.get_log_file(service_provider, user, suffix="bulk_delete")
         email_file = os.path.join(self.script_dir, sender_email_id_list)
         self.config.read(email_file)
 

@@ -14,6 +14,16 @@
 --   from_subject                data = "sender<FS>subject<RS>sender2<FS>subject2"
 --   display_name_days           data = "Name<FS>daysAgo<RS>Name2<FS>daysAgo2"
 --   display_name_days_subject   data = "Name<FS>daysAgo<FS>subject<RS>..."
+--   message_id                  data = "12345<RS>12346<RS>..."
+--
+-- message_id is Mail.app's OWN internal message id (what "id of msg"
+-- returns, and what export_recent_messages.applescript exports as
+-- message_id) - NOT the Message-ID: header a mail server assigns, and NOT
+-- portable across re-adding the account or rebuilding Mail's local
+-- database. Treat it as "delete this exact message I just saw a moment
+-- ago", not as something safe to store long-term in a rules file.
+-- message_id looks messages up directly (no batch_size scan of the whole
+-- mailbox needed) - batch_size is ignored for this mode.
 --
 -- <RS> (record separator) and <FS> (field separator) are ASCII control
 -- characters 30 and 31 - not printable, so they can never collide with a
@@ -51,6 +61,35 @@ on run argv
     set matchCount to 0
     set counter to 0
 
+    if theMode is "message_id" then
+        -- Direct ID lookup - no need to scan the whole mailbox. batch_size
+        -- is irrelevant here; every ID in recordList is attempted.
+        tell application "Mail"
+            set theMailbox to mailbox "INBOX" of theAccount
+            repeat with rec in recordList
+                set counter to counter + 1
+                set idText to rec as text
+                try
+                    set targetId to idText as integer
+                    set msg to (first message of theMailbox whose id is targetId)
+                    set matchCount to matchCount + 1
+                    set msgEntry to "[message_id=" & idText & "] " & (subject of msg)
+                    my appendToLog(theLogFile, msgEntry)
+                    log msgEntry
+                    if theAction is "delete" then
+                        delete msg
+                    end if
+                on error errMsg
+                    log "message_id " & idText & " not found (already deleted, wrong account, or not in INBOX): " & errMsg
+                end try
+            end repeat
+        end tell
+
+        set summary to "Processed " & counter & " message_id(s), " & matchCount & " found, action=" & theAction
+        log summary
+        return summary
+    end if
+
     with timeout of 600 seconds
         tell application "Mail"
             set theMailbox to mailbox "INBOX" of theAccount
@@ -74,8 +113,7 @@ on run argv
                     my appendToLog(theLogFile, msgEntry)
                     log msgEntry
                     if theAction is "delete" then
-                        --delete msg
-                        log msg 
+                        delete msg
                     end if
                 end if
             end repeat
