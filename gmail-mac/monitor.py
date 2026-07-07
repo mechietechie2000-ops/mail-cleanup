@@ -287,7 +287,11 @@ def _run_osascript_with_retry(cmd, monitor, step_name, timeout=650, max_retries=
                 time.sleep(backoff_seconds)
                 continue
 
-            logging.info(f"[{step_name}] completed successfully on attempt {attempt}.")
+            summary_text = (result.stdout or "").strip()
+            if summary_text:
+                logging.info(f"[{step_name}] completed successfully on attempt {attempt}: {summary_text}")
+            else:
+                logging.info(f"[{step_name}] completed successfully on attempt {attempt}.")
             return True
 
         except subprocess.TimeoutExpired:

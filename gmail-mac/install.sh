@@ -10,7 +10,7 @@
 set -e
 
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="${1:-$HOME/mail-cleanup}"
+INSTALL_DIR="${1:-$HOME/gmail-cleanup}"
 PLIST_LABEL="com.gmailcleanup.watchdog"
 PLIST_PATH="$HOME/Library/LaunchAgents/${PLIST_LABEL}.plist"
 
@@ -39,8 +39,12 @@ cp "$SRC_DIR/GmailMgmt.py" "$INSTALL_DIR/"
 cp "$SRC_DIR/main.py" "$INSTALL_DIR/"
 cp "$SRC_DIR/monitor.py" "$INSTALL_DIR/"
 cp "$SRC_DIR/watchdog.py" "$INSTALL_DIR/"
+cp "$SRC_DIR/export_preview.py" "$INSTALL_DIR/"
+cp "$SRC_DIR/add_sender.py" "$INSTALL_DIR/"
+cp "$SRC_DIR/migrate_ini_to_csv.py" "$INSTALL_DIR/"
 mkdir -p "$INSTALL_DIR/applescript"
 cp "$SRC_DIR/applescript/mail_action.applescript" "$INSTALL_DIR/applescript/"
+cp "$SRC_DIR/applescript/export_recent_messages.applescript" "$INSTALL_DIR/applescript/"
 
 if [[ ! -f "$INSTALL_DIR/config.ini" ]]; then
     cp "$SRC_DIR/config.ini.example" "$INSTALL_DIR/config.ini"
@@ -49,9 +53,9 @@ else
     echo "config.ini already exists, leaving it alone."
 fi
 
-if [[ ! -f "$INSTALL_DIR/senders_email1.ini" ]]; then
-    cp "$SRC_DIR/senders.ini.example" "$INSTALL_DIR/senders_email1.ini"
-    echo "Created $INSTALL_DIR/senders_email1.ini from the template — edit this with your real senders."
+if [[ ! -f "$INSTALL_DIR/senders_email1.csv" ]]; then
+    cp "$SRC_DIR/senders.csv.example" "$INSTALL_DIR/senders_email1.csv"
+    echo "Created $INSTALL_DIR/senders_email1.csv from the template — edit with add_sender.py or by hand."
 fi
 
 echo "Files copied."

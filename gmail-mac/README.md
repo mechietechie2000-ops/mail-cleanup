@@ -89,6 +89,54 @@ tccutil reset AppleEvents
 then run the script manually once from Terminal so the prompt has a chance
 to appear.
 
+## Managing who gets blocked (senders_*.csv)
+
+Sender/rule lists now live in one CSV per account (`senders_email1.csv`,
+pointed to by `sender_email_id_list` in `config.ini`), not scattered across
+`.ini` sections. Schema:
+
+```
+rule_type,value1,value2,value3,action,date_added,notes
+```
+
+`rule_type` is one of `sender`, `display_name`, `from_subject`,
+`display_name_days`, `display_name_days_subject` (see `senders.csv.example`
+for one of each). `action` is `delete` or `list` (list = log matches only,
+don't actually delete — useful while you're still confident-checking a
+rule).
+
+**Recommended workflow before blocking a new sender:**
+
+```bash
+# 1. See what's actually in the inbox lately (read-only, no deletes)
+python3 export_preview.py Email1 --count 100 --words 200
+#    -> writes review_Email1_<timestamp>.csv: message_id, sender,
+#       date_received, subject, body_preview
+
+# 2. Look through it, decide who's spam, then add them
+python3 add_sender.py Email1 sender spammer@example.com \
+    --notes "flagged in review_Email1_20260706.csv"
+
+python3 add_sender.py Email1 from_subject deal@shop.com "50% off" --action list
+```
+
+`add_sender.py` skips silently if the exact rule already exists, so it's
+safe to re-run. `process_sender_rules()` (what `main.py` actually calls)
+reads the whole CSV each run, groups rows by `(rule_type, action)`, and
+does one AppleScript pass per group — so mixing `delete` and `list` rows
+for the same `rule_type` works fine, they just become two separate passes.
+
+**Migrating an existing `senders_*.ini`:**
+
+```bash
+python3 migrate_ini_to_csv.py senders_email1.ini senders_email1.csv
+```
+
+Then update that account's `sender_email_id_list` in `config.ini` to point
+at the `.csv` file instead of the `.ini` file. The old `.ini`-reading
+methods (`delete_email_by_display_name`, etc.) are still in `GmailMgmt.py`
+and still work unchanged if you'd rather not migrate a given account yet.
+
 ## How the alerting works
 
 - Before every AppleScript call, `monitor.py` checks free disk space, that

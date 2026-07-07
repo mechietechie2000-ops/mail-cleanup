@@ -1,0 +1,6 @@
+rule_type,value1,value2,value3,action,date_added,notes
+sender,newsletter@example.com,,,delete,2026-01-01,example
+display_name,Some Marketing Team,,,delete,2026-01-01,example
+from_subject,sender@example.com,Weekly Digest,,delete,2026-01-01,example
+display_name_days,Some Old Sender,90,,list,2026-01-01,example
+display_name_days_subject,Some Old Sender,90,Renewal Notice,delete,2026-01-01,example

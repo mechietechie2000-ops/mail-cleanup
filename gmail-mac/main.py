@@ -49,17 +49,22 @@ if __name__ == "__main__":
     # Each (label, callable) step runs independently - if one fails/crashes,
     # it's logged + alerted (via GmailMgmt's AlertMonitor / iMessage) and the
     # rest of the run still proceeds instead of the whole script dying.
+    #
+    # process_sender_rules() reads senders_<account>.csv (one row per rule -
+    # see senders.csv.example) and runs every rule type it finds in one
+    # step per account, instead of a separate call per rule type. Use
+    # batch_size_overrides if you want some rule types to scan more/fewer
+    # messages than others in the same run (matches the old per-method
+    # batch sizes: sender rules used 200, display_name/from_subject used
+    # 2000, display_name_days_subject used 500).
     steps = [
-        ("delete_email_by_sender_id3('Email2', batch_size=200)",
-         lambda: gmailObject.delete_email_by_sender_id3('Email2', batch_size=200)),
-        ("delete_email_by_sender_id3('Email1', batch_size=200)",
-         lambda: gmailObject.delete_email_by_sender_id3('Email1', batch_size=200)),
-        ("delete_email_by_display_name('Email1', batch_size=2000)",
-         lambda: gmailObject.delete_email_by_display_name('Email1', batch_size=2000)),
-        ("delete_email_by_from_and_subject('Email1', batch_size=2000)",
-         lambda: gmailObject.delete_email_by_from_and_subject('Email1', batch_size=2000)),
-        ("delete_email_by_display_name_days_ago_subject('Email1', batch_size=500)",
-         lambda: gmailObject.delete_email_by_display_name_days_ago_subject('Email1', batch_size=500)),
+        ("process_sender_rules('Email2', batch_size=200)",
+         lambda: gmailObject.process_sender_rules('Email2', batch_size=200)),
+        ("process_sender_rules('Email1', batch_size=2000, overrides={'sender': 200, 'display_name_days_subject': 500})",
+         lambda: gmailObject.process_sender_rules(
+             'Email1', batch_size=2000,
+             batch_size_overrides={'sender': 200, 'display_name_days_subject': 500}
+         )),
     ]
 
     logging.info(f"Execution started at {gmailObject.get_time()}")
